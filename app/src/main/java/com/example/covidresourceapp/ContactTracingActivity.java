@@ -21,10 +21,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,6 +48,7 @@ public class ContactTracingActivity extends AppCompatActivity {
     SendReceive sendReceive;
     GoogleSignInAccount account = MainActivity.getAccount();
     String userEmail = account.getEmail();//account.getEmail();
+    DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
 
     static final int STATE_LISTENING = 1;
     static final int STATE_CONNECTING = 2;
@@ -77,27 +88,35 @@ public class ContactTracingActivity extends AppCompatActivity {
             public void onClick(View v) {
                 ServerClass serverClass = new ServerClass();
                 serverClass.start();
+
+
+                Set<BluetoothDevice> bt = myAdapter.getBondedDevices();
+                Log.w("MyActivity", "Does bt exist: " + bt.size());
+                for (BluetoothDevice device : bt)
+                {
+                    Log.w(TAG, "device is" + device.getName());
+                    ClientClass clientClass = new ClientClass(device);
+                    clientClass.start();
+
+
+                    status.setText("Connecting");
+
+                    //            try{
+                    //                sendReceive.write(userEmail.getBytes());
+                    //                Log.w(TAG, "send receive is " + sendReceive);
+                    //            } catch (NullPointerException e) {
+                    //                e.printStackTrace();
+                    //            }
+
+
+                }
+                if (bt.toArray().length == 0) {
+                    status.setText("None Available");
+                }
             }
+
         });
-        Set<BluetoothDevice> bt = myAdapter.getBondedDevices();
-        Log.w("MyActivity", "" + bt.size());
-        for (BluetoothDevice device : bt)
-        {
-            Log.w(TAG, "account is" + MainActivity.getAccount());
-            ClientClass clientClass = new ClientClass(device);
-            clientClass.start();
 
-            status.setText("Connecting");
-
-            sendReceive.write(userEmail.getBytes());
-
-
-
-
-        }
-        if (bt.toArray().length == 0) {
-            status.setText("None Available");
-        }
     }
 
 
@@ -125,7 +144,9 @@ public class ContactTracingActivity extends AppCompatActivity {
                     byte[] read_buffer = (byte[]) msg.obj;
                     String tempMag = new String(read_buffer, 0, msg.arg1);
                     if (tempMag.length() > 0) {
+                        addCloseContact(tempMag);
                         msg_box.setText(tempMag);
+
                     } else {
                         msg_box.setText("Still waiting");
                     }
@@ -135,7 +156,38 @@ public class ContactTracingActivity extends AppCompatActivity {
             }
             return true;
         }
-});
+    });
+
+    private void addCloseContact(String contactEmail) {
+        // Since emails are unique, and all are google, extract string before @
+        // Because file directories can't take those symbols
+        String userToken = userEmail.substring(0, userEmail.indexOf('@')).replaceAll("[\\-\\+\\.\\^:,]","");
+        String key = mDatabase.child("users").push().getKey();
+
+        Map<String, Object> postValues = new HashMap<>();
+
+        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
+        postValues.put("userID", userToken);
+        postValues.put("closeContactEmail", contactEmail);
+        postValues.put("timestamp", timeStamp);
+
+        DatabaseReference ref= mDatabase.child("users");
+        ref.orderByChild("users").equalTo(userToken).addValueEventListener(new ValueEventListener(){
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                //create new user
+                Map<String, Object> childUpdates = new HashMap<>();
+                childUpdates.put("/users/" + key, postValues);
+                mDatabase.updateChildren(childUpdates);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.d(TAG, databaseError.getMessage());
+            }
+        });
+
+    }
 
     private void bluetoothOFFMethod() {
         buttonOFF.setOnClickListener(new View.OnClickListener(){
@@ -209,7 +261,6 @@ public class ContactTracingActivity extends AppCompatActivity {
                     //write code for send receive
                     sendReceive = new SendReceive(socket);
                     sendReceive.start();
-                    break;
                 }
             }
         }
@@ -219,33 +270,36 @@ public class ContactTracingActivity extends AppCompatActivity {
         private BluetoothSocket socket;
         private BluetoothDevice device;
 
-            public ClientClass(BluetoothDevice device1) {
-                device = device1;
-                try {
-                    socket = device.createInsecureRfcommSocketToServiceRecord(MY_UUID);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
+        public ClientClass(BluetoothDevice device1) {
+            device = device1;
+            try {
+                socket = device.createInsecureRfcommSocketToServiceRecord(MY_UUID);
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
-            public void run() {
-                myAdapter.cancelDiscovery();
-                try {
-                    socket.connect();
-                    //send receive
-                    Message message = Message.obtain();
-                    message.what = STATE_CONNECTED;
-                    handler.sendMessage(message);
+        }
+        public void run() {
+            //myAdapter.cancelDiscovery();
+            try {
+                socket.connect();
+                //send receive
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTED;
+                handler.sendMessage(message);
 
-                    sendReceive = new SendReceive(socket);
-                    sendReceive.start();
+                sendReceive = new SendReceive(socket);
+                Log.w(TAG, "send receive is initialized");
+                sendReceive.start();
+                sendReceive.write(userEmail.getBytes());
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Message message = Message.obtain();
-                    message.what = STATE_CONNECTION_FAILED;
-                    handler.sendMessage(message);
-                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.w(TAG, "send receive is NOT INIT");
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTION_FAILED;
+                handler.sendMessage(message);
             }
+        }
     }
     private class SendReceive extends Thread
     {

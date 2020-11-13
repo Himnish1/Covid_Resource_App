@@ -2,6 +2,8 @@ package com.example.covidresourceapp;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -34,64 +36,43 @@ public class SelfReportActivity extends AppCompatActivity {
     String userEmail = account.getEmail();
     String userIdentity = account.getDisplayName();
     DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
-    Set<String> closeContactEmails = new HashSet<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_self_report);
 
-        Button addContact = findViewById(R.id.addContactButton);
-        addContact.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Code here executes on main thread after user presses button
-                addCloseContact();
-            }
-        });
-
         Button notifyContacts = findViewById(R.id.notifyContactsButton);
         notifyContacts.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
-                notifyContacts("theepicsniper3");
+                String userToken = userEmail.substring(0, userEmail.indexOf('@')).replaceAll("[\\-\\+\\.\\^:,]","");
+                notifyContacts(userToken);
             }
         });
 
     }
 
-    private void addCloseContact() {
-        // Since emails are unique, and all are google, extract string before @
-        // Because file directories can't take those symbols
-        String userToken = userEmail.substring(0, userEmail.indexOf('@')).replaceAll("[\\-\\+\\.\\^:,]","");
-        String key = mDatabase.child("users").push().getKey();
+    // Function to convert Set<String> to String[]
+    public static String[] convert(Set<String> setOfString) {
 
-        Map<String, Object> postValues = new HashMap<>();
+        // Create String[] of size of setOfString
+        String[] arrayOfString = new String[setOfString.size()];
 
-        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-        postValues.put("userID", userToken);
-        postValues.put("closeContactEmail", "rina.kawamura@yale.edu");
-        postValues.put("timestamp", timeStamp);
+        // Copy elements from set to string array
+        // using advanced for loop
+        int index = 0;
+        for (String str : setOfString)
+            arrayOfString[index++] = str;
 
-        DatabaseReference ref= mDatabase.child("users");
-        ref.orderByChild("users").equalTo(userToken).addValueEventListener(new ValueEventListener(){
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                //create new user
-                Map<String, Object> childUpdates = new HashMap<>();
-                childUpdates.put("/users/" + key, postValues);
-                mDatabase.updateChildren(childUpdates);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.d(TAG, databaseError.getMessage());
-            }
-        });
-
+        // return the formed String[]
+        return arrayOfString;
     }
 
-    void notifyContacts(String currentUserID) {
 
+    private void notifyContacts(String currentUserID) {
+
+        Set<String> closeContactEmails = new HashSet<String>();
         // Retrieve data from database
         mDatabase.addValueEventListener(new ValueEventListener() {
             @Override
@@ -121,7 +102,9 @@ public class SelfReportActivity extends AppCompatActivity {
                                 diff = currDate.getTime() - contactDate.getTime();
                                 int days = (int) diff / (1000 * 60 * 60 * 24);
                                 // Only add to the closeContactEmails list if less than 2 weeks since contact
+//                                Log.w(TAG, "userID: " + userID);
                                 if (userID.equals(currentUserID) && days < 14){
+//                                    Log.w(TAG, "close contact email: " + closeContactEmail);
                                     closeContactEmails.add(closeContactEmail);
                                 }
                             } catch (ParseException e) {
@@ -134,6 +117,45 @@ public class SelfReportActivity extends AppCompatActivity {
                         }
 
                     }
+
+                for (String s : closeContactEmails ) {
+                    Log.w(TAG, "closeContactEmails: " + s);
+
+                    final Intent emailLauncher = new Intent(Intent.ACTION_SEND);
+                    emailLauncher.setType("message/rfc822");
+                    emailLauncher.putExtra(Intent.EXTRA_BCC, new String[] {s});
+                    emailLauncher.putExtra(Intent.EXTRA_SUBJECT, "Exposure Notification COVID 19");
+                    emailLauncher.putExtra(Intent.EXTRA_TEXT, "Dear Sir/Madam, You have recently come into close contact with someone who self-reported a positive COVID-19 test. Here are some Isolation instructions and testing recommendations that you can follow to keep yourself and those around you safe:\n" +
+                            "\n" +
+                            "If you were diagnosed with COVID-19 in the past 90 days:\n" +
+                            "\n" +
+                            "\t- If you have no current symptoms of COVID-19, you do not have to quarantine and retesting is not recommended.\n" +
+                            "\t- If you do have current symptoms, begin self isolation immediately for 10 days after symptom onset and consult with a healthcare provider to determine if you have been re-infected with COVID-19. Note that quarantine period remains at 14 days irrespective of subsequent test result.\n" +
+                            "\n" +
+                            "If you were not diagnosed with COVID-19 in the past 90 days:\n" +
+                            "\n" +
+                            "\t- If you have no symptoms, you are asked to self-quarantine for 14 days from last potential exposure and should be referred for testing.\n" +
+                            "\t- If you have symptoms, immediately self-isolate for 10 days after symptom onset and get referred for testing and medical care." +
+                            "In general:\n" +
+                            "\t\n" +
+                            "\t- Cancel or postpone plans that involve social gatherings, vacations or other planned travel until cleared for these activities by the health authorities.\n" +
+                            "\t- Monitor your symptoms continuously. COVID-19 symptoms include:\n" +
+                            "\t\t- Feel feverish or have a temperature of 100.4⁰F or higher.\n" +
+                            "\t\t- Develop a cough or shortness of breath.\n" +
+                            "\t\t- Have persistent pain or pressure in your chest.\n" +
+                            "\t\t- Develop new confusion.\n" +
+                            "\t\t- Are unable to wake up or stay awake.\n" +
+                            "\t\t- Have bluish lips or face.\n" +
+                            "\t\t- Develop mild symptoms like sore throat, muscle aches, tiredness, or diarrhoea.\n" +
+                            "\t- Refer to https://www.cdc.gov/coronavirus/2019-ncov/php/contact-tracing/contact-tracing-plan/contact-tracing.html for more detail");
+                    try{
+                        startActivity(emailLauncher);
+                    }catch(ActivityNotFoundException e){
+
+                    }
+
+                }
+
                 }
             @Override
             public void onCancelled(DatabaseError databaseError) {
@@ -143,9 +165,8 @@ public class SelfReportActivity extends AppCompatActivity {
 
         });
 
-        for (String s : closeContactEmails) {
-            Log.w(TAG, "closeContactEmails: " + s);
-        }
+
+        // Email the close contact
 //        String temp[] = (String[]) closeContactEmails.toArray();
 
     }
