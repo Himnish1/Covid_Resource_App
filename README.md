@@ -1,13 +1,13 @@
-<h1>COVID RESOURCE APP - YHack 2020<h1>
+# COVID RESOURCE APP - YHack 2020<h1>
 
 Himnish Hunma, Daniel Li, Mudi Yang, Eric Zhang
 
 Android COVID resource app with contact tracing, social distancing mapping, and VR social distancing "ruler".
 
 
-<h2>Awards<h2>
+## Awards<h2>
   
-- Citadel) Best COVID-19 Related Hack
+- (Citadel) Best COVID-19 Related Hack
   - The best COVID-19 related hack. Prize: $1200 in cash split amongst the winning team members.
 - (Google Cloud) Best Use of Google Cloud
   - The hack that best uses any Google Cloud product. Prize: Google Cloud branded backpack, water bottle, and trophy awarded to each winning team member (only shipped to US addresses).
