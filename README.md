@@ -17,6 +17,8 @@ Our app has 4 features, namely:
 With this app, we hope to provide the tools to users to navigate social distancing more easily amidst this worldwide pandemic.
 
 ## Awards <h3>
+- Finalist of Yhack 2020
+  - Top 5 team out of 700+ participants at Yhacks
 - (Citadel) Best COVID-19 Related Hack
   - The best COVID-19 related hack. Prize: $1200 in cash split amongst the winning team members.
 - (Google Cloud) Best Use of Google Cloud
