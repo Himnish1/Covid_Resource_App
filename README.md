@@ -1,5 +1,4 @@
 # COVID RESOURCE APP - YHack 2020 <h1>
-
 Collaborators: Himnish Hunma, Daniel Li, Mudi Yang, Eric Zhang
 
 Android COVID resource app with contact tracing, social distancing mapping, and VR social distancing "ruler".
@@ -7,7 +6,6 @@ Android COVID resource app with contact tracing, social distancing mapping, and 
 [Devpost](https://devpost.com/software/covid_resource_app) for in depth description and video on project. 
 
 ## Description <h2>
-  
 Are you out in public but scared about people standing too close? Do you want to catch up on the social interactions at your cosy place but do not want to endanger your guests? Or you just want to be notified as soon as you have come in close contact to an infected individual? The Covid Resource App aims to bring a one-size-fits-all solution to the multifaceted issues that COVID-19 has spread in our everyday lives. 
 
 Our app has 4 features, namely:
@@ -19,7 +17,6 @@ Our app has 4 features, namely:
 With this app, we hope to provide the tools to users to navigate social distancing more easily amidst this worldwide pandemic.
 
 ## Awards <h3>
-  
 - (Citadel) Best COVID-19 Related Hack
   - The best COVID-19 related hack. Prize: $1200 in cash split amongst the winning team members.
 - (Google Cloud) Best Use of Google Cloud
