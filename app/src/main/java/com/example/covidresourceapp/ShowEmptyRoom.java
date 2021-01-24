@@ -31,6 +31,7 @@ public class ShowEmptyRoom extends AppCompatActivity {
     int radius = 6 * (factor/2);
     int count = 0;
     private List<Point> circlePoints;
+    boolean social_dist = true;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -44,6 +45,7 @@ public class ShowEmptyRoom extends AppCompatActivity {
         private final SurfaceHolder surfaceHolder;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint paint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint not_dist = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         public DrawingView(Context context) {
             super(context);
@@ -54,8 +56,13 @@ public class ShowEmptyRoom extends AppCompatActivity {
             paint1.setColor(Color.BLACK);
             paint1.setStrokeWidth(3);
             paint1.setStyle(Paint.Style.STROKE);
+
         }
 
+        //returns cartesian distance between points (x1, y1) and (x2, y2)
+        int dist_formula (int x1, int y1, int x2, int y2){
+            return (int) Math.round(Math.pow(Math.pow((x1 - x2),2) + Math.pow((y1 - y2),2), 0.5));
+        }
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
@@ -74,14 +81,32 @@ public class ShowEmptyRoom extends AppCompatActivity {
             Rect rect = new Rect(left, top, right, bottom);
             canvas.drawRect(rect, paint1);
 
-            if (count > 1) {
-                float touchX = event.getX();
-                float touchY = event.getY();
-                circlePoints.add(new Point(Math.round(touchX), Math.round(touchY)));
-                canvas.drawCircle(event.getX(), event.getY(), radius, paint1);
+
+            if (count > 2) {
+                //get coordinates for the new circle
+                int touchX = Math.round(event.getX());
+                int touchY = Math.round(event.getY());
+
+                //draw all previous circles, and calculate distance to the current circle
+                //if a point is not 6 feet away, change bool to false
+                social_dist = true;
+
                 for (Point p : circlePoints) {
                     canvas.drawCircle(p.x, p.y, radius, paint);
+
+                    int dist = dist_formula(touchX, touchY, p.x, p.y);
+
+                    if (dist < radius){
+                        social_dist = false;
+                    }
                 }
+
+                //draw circle and add new circle center to list of circle centers if it is socially distant
+                if (social_dist) {
+                    canvas.drawCircle(touchX, touchY, radius, paint);
+                    circlePoints.add(new Point(touchX, touchY));
+                }
+
             }
 
             surfaceHolder.unlockCanvasAndPost(canvas);
